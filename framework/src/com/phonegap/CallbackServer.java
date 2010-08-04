@@ -18,6 +18,11 @@ public class CallbackServer implements Runnable {
 		serverThread.run();
 	}
 	
+	public void addResponse(Response r)
+	{
+		responseQueue.add(r);
+	}
+	
 	public void stopServer()
 	{
 		active = false;
@@ -34,7 +39,9 @@ public class CallbackServer implements Runnable {
 				Socket connection = waitSocket.accept();
 				BufferedReader xhrReader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 				DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+				String hostname = connection.getInetAddress().getHostAddress();
 				request = xhrReader.readLine();
+				//if(request.contains("GET") && hostname.contains("localhost"))
 				if(request.contains("GET"))
 				{
 					if(responseQueue.isEmpty())
@@ -47,6 +54,8 @@ public class CallbackServer implements Runnable {
 						output.writeBytes(rsp.getJson());
 					}
 				}
+				
+				output.close();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
