@@ -9,17 +9,18 @@ public class AccelBroker {
     private WebView mAppView;
 	private Context mCtx;
 	private HashMap<String, AccelListener> accelListeners;
+	private CallbackServer mCallback;
 	
-	public AccelBroker(WebView view, Context ctx)
+	public AccelBroker(CallbackServer cServer, Context ctx)
 	{
 		mCtx = ctx;
-		mAppView = view;
+		mCallback = cServer;
 		accelListeners = new HashMap<String, AccelListener>();
 	}
 	
 	public String start(int freq, String key)
 	{
-		AccelListener listener = new AccelListener(key, freq, mCtx, mAppView);
+		AccelListener listener = new AccelListener(key, freq, mCtx, mCallback);
 		listener.start(freq);
 		accelListeners.put(key, listener);
 		return key;

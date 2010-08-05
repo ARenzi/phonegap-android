@@ -45,13 +45,20 @@ public class Device{
 	public static String uuid;
 	private Context mCtx;
     private WebView mAppView;
+    private CallbackServer cServer;
     AudioPlayer audio; 
     
-	public Device(WebView appView, Context ctx) {
+	public Device(WebView appView, CallbackServer server, Context ctx) {
         this.mCtx = ctx;
         this.mAppView = appView;
         uuid = getUuid();
+        cServer = server;
     }
+	
+	public int getPort()
+	{
+		return cServer.getPort();
+	}
 	
 	public void beep(long pattern)
 	{

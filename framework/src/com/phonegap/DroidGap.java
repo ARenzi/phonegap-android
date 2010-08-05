@@ -60,6 +60,8 @@ public class DroidGap extends Activity {
 	protected WebView appView;
 	private LinearLayout root;	
 	
+	
+	private CallbackServer cServer;
 	private Device gap;
 	private GeoBroker geo;
 	private AccelBroker accel;
@@ -131,7 +133,7 @@ public class DroidGap extends Activity {
                 
         root.addView(appView);   
         
-        setContentView(root);                        
+        setContentView(root);
     }
 	
 	public void invoke(String origin, boolean allow, boolean remember) {
@@ -146,8 +148,9 @@ public class DroidGap extends Activity {
     
     private void bindBrowser(WebView appView)
     {
-    	gap = new Device(appView, this);
-    	accel = new AccelBroker(appView, this);
+    	cServer = new CallbackServer();
+    	gap = new Device(appView, cServer, this);
+    	accel = new AccelBroker(cServer, this);
     	launcher = new CameraLauncher(appView, this);
     	mContacts = new ContactManager(appView, this);
     	fs = new FileUtils(appView);

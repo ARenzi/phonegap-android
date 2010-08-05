@@ -18,15 +18,16 @@ public class AccelListener implements SensorEventListener{
 	Sensor mSensor;
 	int mTime = 10000;
 	boolean started = false;
+	private CallbackServer cServer;
 	
 	private SensorManager sensorManager;
 	
 	private long lastUpdate = -1;
 	
-	public AccelListener(String key, int freq, Context ctx, WebView appView)
+	public AccelListener(String key, int freq, Context ctx, CallbackServer mCallback)
 	{
 		mCtx = ctx;
-		mAppView = appView;		
+		cServer = mCallback;		
 		mKey = key;
 		mTime = freq;
 		sensorManager = (SensorManager) mCtx.getSystemService(Context.SENSOR_SERVICE);
@@ -72,7 +73,9 @@ public class AccelListener implements SensorEventListener{
 			float y = event.values[1];
 			float z = event.values[2];			
 			//mAppView.loadUrl("javascript:gotAccel(" + x +  ", " + y + "," + z + " )");
-			mAppView.loadUrl("javascript:navigator.accelerometer.gotAccel(" +  mKey + "," + x + "," + y + "," + z + ")");
+			//mAppView.loadUrl("javascript:navigator.accelerometer.gotAccel(" +  mKey + "," + x + "," + y + "," + z + ")");
+			AccelResponse resp = new AccelResponse(mKey, x, y, z);
+			cServer.addResponse(resp);			
 		}		
 	}
 	

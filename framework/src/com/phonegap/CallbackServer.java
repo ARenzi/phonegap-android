@@ -11,11 +11,18 @@ public class CallbackServer implements Runnable {
 	boolean active = true;
 	int port = 8080;
 	
+	
+	
 	CallbackServer()
 	{
 		responseQueue = new LinkedList<Response>();
 		serverThread = new Thread(this);
-		serverThread.run();
+		serverThread.start();
+	}
+	
+	public int getPort()
+	{
+		return port;
 	}
 	
 	public void addResponse(Response r)

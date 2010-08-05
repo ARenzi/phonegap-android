@@ -3,23 +3,23 @@ package com.phonegap;
 public class AccelResponse implements Response {
 
 	String key;
-	int x;
-	int y; 
-	int z;
+	float x;
+	float y; 
+	float z;
 	
-	AccelResponse(String mkey, int mx, int my, int mz)
-	{
-		key = mkey;
+	
+	public AccelResponse(String mKey, float mx, float my, float mz) {
+		key = mKey;
 		x = mx;
 		y = my;
 		z = mz;
 	}
-	
+
 	public String getJson() {
-		String json = "{ \"key\" : \"" + key + "\",";
-		json += " \"x\" : " + Integer.toString(x) + ",";
-		json += " \"y\" : " + Integer.toString(y) + ",";
-		json += " \"z\" : " + Integer.toString(z) + "}";
+		String json = "{ \"type\" : \"accel\", \"key\" : \"" + key + "\",";
+		json += " \"x\" : " + Float.toString(x) + ",";
+		json += " \"y\" : " + Float.toString(y) + ",";
+		json += " \"z\" : " + Float.toString(z) + "}";
 		return json;
 	}
 
