@@ -79,5 +79,4 @@ public class AccelListener implements SensorEventListener{
 		}		
 	}
 	
-	
 }
