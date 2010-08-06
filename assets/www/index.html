@@ -49,6 +49,18 @@
   		opt.frequency = 100;
   		timer = navigator.accelerometer.watchAcceleration(suc,fail,opt);
   	}
+  	
+  	var watchLightOut = function() {
+  		//alert("Chiamata la funzione della luce");
+  		var suc = function(a){
+  			//alert("arrivato il nuovo valore della luce");
+  			document.getElementById('luce').innerHTML = roundNumber(a.luce);  			
+  		};
+  		var fail = function(){ alert ("Errore nell'acquisizione della luce");};
+  		var opt = {};
+  		opt.frequency = 100;
+  		timer = navigator.light.watchLight(suc,fail,opt);
+  	}
     	
     function roundNumber(num) {
       var dec = 3;
@@ -133,6 +145,10 @@
       <dt>Y:</dt><dd id="y">&nbsp;</dd>
       <dt>Z:</dt><dd id="z">&nbsp;</dd>
     </dl>
+    <dl id="light-data">
+      <dt>luce:</dt><dd id="luce">&nbsp;</dd>      
+    </dl>
+    <a href="#" class="btn large" onclick="watchLightOut();">Watch Light</a>
     <a href="#" class="btn large" onclick="watchAccel();">Watch Accelerometer</a>
     <a href="#" class="btn large" onclick="getLocation();">Get Location</a>
 	<a href="tel://411" class="btn large">Call 411</a>

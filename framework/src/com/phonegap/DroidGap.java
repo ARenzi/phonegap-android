@@ -72,6 +72,7 @@ public class DroidGap extends Activity {
 	private CryptoHandler crypto;
 	private BrowserKey mKey;
 	private AudioHandler audio;
+	private LightBroker light;
 
 	private Uri imageUri;
 	
@@ -148,6 +149,7 @@ public class DroidGap extends Activity {
     {
     	gap = new Device(appView, this);
     	accel = new AccelBroker(appView, this);
+    	light = new LightBroker(appView, this); 
     	launcher = new CameraLauncher(appView, this);
     	mContacts = new ContactManager(appView, this);
     	fs = new FileUtils(appView);
@@ -160,6 +162,7 @@ public class DroidGap extends Activity {
     	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(gap, "DroidGap");
     	appView.addJavascriptInterface(accel, "Accel");
+    	appView.addJavascriptInterface(light, "Light");    	
     	appView.addJavascriptInterface(launcher, "GapCam");
     	appView.addJavascriptInterface(mContacts, "ContactHook");
     	appView.addJavascriptInterface(fs, "FileUtil");
