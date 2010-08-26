@@ -1,4 +1,6 @@
 //Light Sensor
+//Author: Alberto Renzi 
+//alberto.renzi@gmail.com
 
 function LightSensorChange(x)
 {
@@ -51,7 +53,7 @@ LightSensor.prototype.getCurrentLight = function(key, x)
 {
     var l = new LightSensorChange(x);
     l.luce = x;
-
+    //alert("Valore Luce" + x);
     l.win = lightListener[key].win;
     l.fail = lightListener[key].fail;
     this.timestamp = new Date().getTime();
@@ -64,7 +66,7 @@ LightSensor.prototype.getCurrentLight = function(key, x)
 
 
 /**
- * Asynchronously aquires the acceleration repeatedly at a given interval.
+ * Asynchronously aquires the light repeatedly at a given interval.
  * @param {Function} successCallback The function to call each time the acceleration
  * data is available
  * @param {Function} errorCallback The function to call when there is an error 

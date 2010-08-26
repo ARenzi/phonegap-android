@@ -4,6 +4,8 @@ function Acceleration(x, y, z)
   this.y = y;
   this.z = z;
   this.timestamp = new Date().getTime();
+  this.win = null;
+  this.fail = null;
 }
 
 var accelListeners = [];
