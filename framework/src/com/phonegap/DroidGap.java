@@ -27,6 +27,7 @@ import java.io.File;
 
 import com.phonegap.api.Command;
 import com.phonegap.api.CommandManager;
+import com.phonegap.plugins.AmbientLight;
 import com.renzi.alberto.prova.R;
 
 import android.app.Activity;
@@ -80,8 +81,7 @@ public class DroidGap extends Activity {
 	private BrowserKey mKey;
 	private AudioHandler audio;
 	private CommandManager commandManager;
-	
-	private LightBroker light;
+	private AmbientLight light;
 	
 	private Uri imageUri;
 	
@@ -178,7 +178,8 @@ public class DroidGap extends Activity {
     	crypto = new CryptoHandler(appView);
     	mKey = new BrowserKey(appView, this);
     	audio = new AudioHandler(appView, this);
-    	light = new LightBroker(appView, this);
+    	light = new AmbientLight();
+    	
     	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(commandManager, "CommandManager");
     	appView.addJavascriptInterface(gap, "DroidGap");

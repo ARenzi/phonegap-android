@@ -1,107 +1,69 @@
-//Light Sensor
+//Ambient Light Sensor plugin
 //Author: Alberto Renzi 
 //alberto.renzi@gmail.com
 
-function LightSensorChange(x)
-{
-  this.luce = x;
-  this.timestamp = new Date().getTime();
-}
-
-var lightListener = [];
-
 /**
- * This class provides access to device LightSensor data.
+ * This class provides an object constructor watcher to listen a data from a java listener 
  * @constructor
  */
-function LightSensor() {
+function Watcher(x) {
 	/**
-	 * The last known Light.
+	 * The last known data.
 	 */
-	this.lastLight = null;
+	this.data = x;
+	this.timestamp = new Date().getTime();
 }
 
-/**
- * Asynchronously aquires the current Light.
- * @param {Function} successCallback The function to call when the light
- * data is available
- * @param {Function} errorCallback The function to call when there is an error 
- * getting the light data.
- * @param {LightSensorOptions} options The options for getting the Light data
- * such as timeout.
- */
-LightSensor.prototype.getCurrentLight = function(successCallback, errorCallback, options) {
-	// If the Light is available then call success
-	// If the Light is not available then call error
-	// Created for iPhone, Iphone passes back _light obj litteral
-	if (typeof successCallback == "function") {
-		if(this.lastLight)
-			{
-				//alert("Chiamata la succcess callback di getCurrentLight");
-				successCallback(lightvar);
-			}
-		else
-		{
-			//alert("E' la prima volta e chiamo la watchLight di PhoneGap");
-			watchLight(this.gotCurrentLight, this.fail);
-		}
+
+if (typeof navigator.system == "undefined") navigator.system =  function(){};
+
+
+//Sample vector for listeners. It can be used for all plugin that have something to observe
+var watcherListener= [];
+
+//I've watched on http://www.w3.org/TR/2010/WD-system-info-api-20100202/#system-properties
+navigator.system.watch = function(clazz, success, args) {	
+	var watchervar = new Watcher(0);
+	var mkey = watcherListener.push( watchervar ) - 1;
+	args[1]= {key:mkey};
+		
+	watchervar.win = success;	
+	
+	var sucPhoneGapCommand = function(a){				
+	};
+	var failPhoneGapCommand = function(){ 
+		alert("PhoneGap command fail");
+	};
+
+	var callbackId = clazz + PhoneGap.callbackId++;
+	PhoneGap.callbacks[callbackId] = {success:sucPhoneGapCommand, fail:failPhoneGapCommand};
+	return CommandManager.exec("com.phonegap.plugins."+clazz, "watch", callbackId, JSON.stringify(args), true);
+};
+
+
+
+//For trigger success function 
+Watcher.prototype.recallWathcers = function(key, data)
+{        	
+	var l = watcherListener[key];
+	l.data = data;
+	l.timestamp = new Date().getTime();	
+	if (typeof l.win == "function") {		
+		l.win(l.data);
 	}
 }
 
 
-LightSensor.prototype.getCurrentLight = function(key, x)
-{
-    var l = new LightSensorChange(x);
-    l.luce = x;
-    //alert("Valore Luce" + x);
-    l.win = lightListener[key].win;
-    l.fail = lightListener[key].fail;
-    this.timestamp = new Date().getTime();
-    this.lastLight = l;
-    lightListener[key] = l;
-    if (typeof l.win == "function") {
-      l.win(l);
-    }
-}
 
-
-/**
- * Asynchronously aquires the light repeatedly at a given interval.
- * @param {Function} successCallback The function to call each time the acceleration
- * data is available
- * @param {Function} errorCallback The function to call when there is an error 
- * getting the acceleration data.
- * @param {AccelerationOptions} options The options for getting the accelerometer data
- * such as timeout.
- */
-
-LightSensor.prototype.watchLight = function(successCallback, errorCallback, options) {
-	
-	// TODO: add the interval id to a list so we can clear all watches
-  var frequency = (options != undefined)? options.frequency : 10000;
-  var lightvar = new LightSensorChange(0);
-  lightvar.win = successCallback;
-  lightvar.fail = errorCallback;
-  lightvar.opts = options;
-  var key = lightListener.push( lightvar ) - 1;
-  Light.start(frequency, key);
-}
-
-/**
- * Clears the specified accelerometer watch.
- * @param {String} watchId The ID of the watch returned from #watchLight.
- */
-LightSensor.prototype.clearWatch = function(watchId) {
-
-	Light.stop(watchId);
-}
-
-LightSensor.prototype.epicFail = function(watchId, message) {
+Watcher.prototype.epicFail = function(key, message) {
   sensorWatcher[key].fail();
 }
 
+
+
+
 PhoneGap.addConstructor(function() {
-    if (typeof navigator.light == "undefined") navigator.light = new LightSensor();
+    if (typeof navigator.system.AmbientLight == "undefined") navigator.system.AmbientLight = new Watcher();
 });
 
 // End LightSensor
