@@ -80,8 +80,7 @@ public class DroidGap extends Activity {
 	private CryptoHandler crypto;
 	private BrowserKey mKey;
 	private AudioHandler audio;
-	private CommandManager commandManager;
-	private AmbientLight light;
+	private CommandManager commandManager;	
 	
 	private Uri imageUri;
 	
@@ -178,7 +177,7 @@ public class DroidGap extends Activity {
     	crypto = new CryptoHandler(appView);
     	mKey = new BrowserKey(appView, this);
     	audio = new AudioHandler(appView, this);
-    	light = new AmbientLight();
+    	
     	
     	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(commandManager, "CommandManager");
@@ -191,8 +190,7 @@ public class DroidGap extends Activity {
     	appView.addJavascriptInterface(mCompass, "CompassHook");
     	appView.addJavascriptInterface(crypto, "GapCrypto");
     	appView.addJavascriptInterface(mKey, "BackButton");
-    	appView.addJavascriptInterface(audio, "GapAudio");
-    	appView.addJavascriptInterface(light, "Light");  
+    	appView.addJavascriptInterface(audio, "GapAudio");    	
     	appView.addJavascriptInterface(new SplashScreen(this), "SplashScreen");
     	
     	

@@ -5,8 +5,19 @@
     <meta http-equiv="Content-type" content="text/html; charset=utf-8">
     <title>PhoneGap</title>
 	  <link rel="stylesheet" href="master.css" type="text/css" media="screen" title="no title" charset="utf-8">
-	  <script type="text/javascript" charset="utf-8" src="phonegap.js"></script>	  
+	  <script type="text/javascript" charset="utf-8" src="phonegap.js"></script>
+	  <script type="text/javascript" charset="utf-8" src="jquery-1.4.2.min.js"></script>
+	  
+	  <style>
+		div { width:60px; height:60px; margin:5px; float:left; }
+  	  </style>
+	  
+	  
+	  	  
 	  <script type="text/javascript" charset="utf-8">
+	  
+	  
+	  
 	  
     var deviceInfo = function(){      
       document.getElementById("platform").innerHTML = device.platform;
@@ -50,16 +61,15 @@
   		timer = navigator.accelerometer.watchAcceleration(suc,fail,opt);
   	}
   	
-  	var watchLightOut = function() {
-  		//alert("Chiamata la funzione della luce");
-  		var suc = function(a){
-  			//alert("arrivato il nuovo valore della luce");
-  			document.getElementById('luce').innerHTML = roundNumber(a.luce);  			
+  	var watchLight = function() {  		  		  
+  		var suc = function(a){  			
+  			document.getElementById('luce').innerHTML = roundNumber(a);
   		};
-  		var fail = function(){ alert ("Errore nell'acquisizione della luce");};
-  		var opt = {};
-  		opt.frequency = 100;
-  		timer = navigator.light.watchLight(suc,fail,opt);
+  		  		
+  		options = new Array();	//JSON ARRAY: 0: all parameters of plugin
+								//			  1: all parameters of phonegap  	
+  		options[0]= {freq:100};	//Update on every 100 ms  		  		
+  		navigator.system.watch("AmbientLight", suc, options);
   	}
     	
     function roundNumber(num) {
@@ -145,10 +155,15 @@
       <dt>Y:</dt><dd id="y">&nbsp;</dd>
       <dt>Z:</dt><dd id="z">&nbsp;</dd>
     </dl>
+  
+    <div id="quadrato" tyle="background-color:blue;">
+    
     <dl id="light-data">
       <dt>luce:</dt><dd id="luce">&nbsp;</dd>      
     </dl>
-    <a href="#" class="btn large" onclick="watchLightOut();">Watch Light</a>
+    
+    </div>
+    <a href="#" class="btn large" onclick="watchLight();">Watch Light</a>
     <a href="#" class="btn large" onclick="watchAccel();">Watch Accelerometer</a>
     <a href="#" class="btn large" onclick="getLocation();">Get Location</a>
 	<a href="tel://411" class="btn large">Call 411</a>

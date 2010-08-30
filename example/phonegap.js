@@ -6,7 +6,7 @@ if (typeof(DeviceInfo) != 'object')
  * information about the state of PhoneGap.
  * @class
  */
-PhoneGap = {
+var PhoneGap = {
     queue: {
         ready: true,
         commands: [],
@@ -15,9 +15,9 @@ PhoneGap = {
 };
 
 
-
-
-
+/**
+ * Custom pub-sub channel that can have functions subscribed to it
+ */
 PhoneGap.Channel = function(type)
 {
     this.type = type;
@@ -27,15 +27,19 @@ PhoneGap.Channel = function(type)
     this.enabled = true;
 };
 
-PhoneGap.Channel.prototype.sub = function(f, c, g)
-{
+/**
+ * Subscribes the given function to the channel. Any time that 
+ * Channel.fire is called so too will the function.
+ * Optionally specify an execution context for the function
+ * and a guid that can be used to stop subscribing to the channel.
+ * Returns the guid.
+ */
+PhoneGap.Channel.prototype.subscribe = function(f, c, g) {
     // need a function to call
-    if (f == null)
-        return;
+    if (f == null) { return; }
 
     var func = f;
-    if (typeof c == "object" && f instanceof Function)
-        func = PhoneGap.close(c, f);
+    if (typeof c == "object" && f instanceof Function) { func = PhoneGap.close(c, f); }
 
     g = g || func.observer_guid || f.observer_guid || this.guid++;
     func.observer_guid = g;
@@ -44,36 +48,40 @@ PhoneGap.Channel.prototype.sub = function(f, c, g)
     return g;
 };
 
-PhoneGap.Channel.prototype.sob = function(f, c)
-{
+/**
+ * Like subscribe but the function is only called once and then it
+ * auto-unsubscribes itself.
+ */
+PhoneGap.Channel.prototype.subscribeOnce = function(f, c) {
     var g = null;
     var _this = this;
     var m = function() {
         f.apply(c || null, arguments);
-        _this.dub(g);
+        _this.unsubscribe(g);
     }
     if (this.fired) {
-	    if (typeof c == "object" && f instanceof Function)
-	        f = PhoneGap.close(c, f);
+	    if (typeof c == "object" && f instanceof Function) { f = PhoneGap.close(c, f); }
         f.apply(this, this.fireArgs);
     } else {
-        g = this.sub(m);
+        g = this.subscribe(m);
     }
     return g;
 };
 
-PhoneGap.Channel.prototype.dub = function(g)
-{
-    if (g instanceof Function)
-        g = g.observer_guid;
+/** 
+ * Unsubscribes the function with the given guid from the channel.
+ */
+PhoneGap.Channel.prototype.unsubscribe = function(g) {
+    if (g instanceof Function) { g = g.observer_guid; }
     this.handlers[g] = null;
     delete this.handlers[g];
 };
 
-PhoneGap.Channel.prototype.fire = function(e)
-{
-    if (this.enabled)
-    {
+/** 
+ * Calls all functions subscribed to this channel.
+ */
+PhoneGap.Channel.prototype.fire = function(e) {
+    if (this.enabled) {
         var fail = false;
         for (var item in this.handlers) {
             var handler = this.handlers[item];
@@ -89,18 +97,20 @@ PhoneGap.Channel.prototype.fire = function(e)
     return true;
 };
 
-PhoneGap.Channel.merge = function(h, e) {
-    var i = e.length;
+/**
+ * Calls the provided function only after all of the channels specified
+ * have been fired.
+ */
+PhoneGap.Channel.join = function(h, c) {
+    var i = c.length;
     var f = function() {
         if (!(--i)) h();
     }
     for (var j=0; j<i; j++) {
-        (!e[j].fired?e[j].sob(f):i--);
+        (!c[j].fired?c[j].subscribeOnce(f):i--);
     }
     if (!i) h();
 }
-
-
 
 
 /**
@@ -114,7 +124,7 @@ PhoneGap.available = DeviceInfo.uuid != undefined;
  * @param {Function} func The function callback you want run once PhoneGap is initialized
  */
 PhoneGap.addConstructor = function(func) {
-    PhoneGap.onDeviceReady.sob(function() {
+    PhoneGap.onDeviceReady.subscribeOnce(function() {
         try {
             func();
         } catch(e) {
@@ -127,27 +137,67 @@ PhoneGap.addConstructor = function(func) {
     });
 };
 
+/**
+ * Adds a plugin object to window.plugins
+ */
+PhoneGap.addPlugin = function(name, obj) {
+	if ( !window.plugins ) {
+		window.plugins = {};
+	}
+
+	if ( !window.plugins[name] ) {
+		window.plugins[name] = obj;
+	}
+}
+
+/**
+ * onDOMContentLoaded channel is fired when the DOM content 
+ * of the page has been parsed.
+ */
 PhoneGap.onDOMContentLoaded = new PhoneGap.Channel();
+
+/**
+ * onNativeReady channel is fired when the PhoneGap native code
+ * has been initialized.
+ */
 PhoneGap.onNativeReady = new PhoneGap.Channel();
 
-if (_nativeReady) PhoneGap.onNativeReady.fire();
+// _nativeReady is global variable that the native side can set
+// to signify that the native code is ready. It is a global since 
+// it may be called before any PhoneGap JS is ready.
+if (typeof _nativeReady !== 'undefined') { PhoneGap.onNativeReady.fire(); }
 
+/**
+ * onDeviceReady is fired only after both onDOMContentLoaded and 
+ * onNativeReady have fired.
+ */
 PhoneGap.onDeviceReady = new PhoneGap.Channel();
 
-PhoneGap.Channel.merge(function() {
+PhoneGap.Channel.join(function() {
     PhoneGap.onDeviceReady.fire();
 }, [ PhoneGap.onDOMContentLoaded, PhoneGap.onNativeReady ]);
 
 
-// Listen for DOMContentLoaded
+// Listen for DOMContentLoaded and notify our channel subscribers
 document.addEventListener('DOMContentLoaded', function() {
     PhoneGap.onDOMContentLoaded.fire();
 }, false);
 
 
+// Intercept calls to document.addEventListener and watch for deviceready
+PhoneGap._document_addEventListener = document.addEventListener;
+
+document.addEventListener = function(evt, handler, capture) {
+    if (evt.toLowerCase() == 'deviceready') {
+        PhoneGap.onDeviceReady.subscribeOnce(handler);
+    } else {
+        PhoneGap._document_addEventListener.call(document, evt, handler);
+    }
+};
 
 
-
+PhoneGap.callbackId = 0;
+PhoneGap.callbacks = {};
 
 /**
  * Execute a PhoneGap command in a queued fashion, to ensure commands do not
@@ -156,11 +206,26 @@ document.addEventListener('DOMContentLoaded', function() {
  * @param {String} command Command to be run in PhoneGap, e.g. "ClassName.method"
  * @param {String[]} [args] Zero or more arguments to pass to the method
  */
-PhoneGap.exec = function() {
-    PhoneGap.queue.commands.push(arguments);
-    if (PhoneGap.queue.timer == null)
-        PhoneGap.queue.timer = setInterval(PhoneGap.run_command, 10);
+PhoneGap.exec = function(clazz, action, args) {
+	CommandManager.exec(clazz, action, callbackId, JSON.stringify(args), false);
 };
+
+PhoneGap.execAsync = function(success, fail, clazz, action, args) {
+	var callbackId = clazz + PhoneGap.callbackId++;
+	PhoneGap.callbacks[callbackId] = {success:success, fail:fail};
+	return CommandManager.exec(clazz, action, callbackId, JSON.stringify(args), true);
+};
+
+PhoneGap.callbackSuccess = function(callbackId, args) {
+	PhoneGap.callbacks[callbackId].success(args);
+	delete PhoneGap.callbacks[callbackId];
+};
+
+PhoneGap.callbackError = function(callbackId, args) {
+	PhoneGap.callbacks[callbackId].fail(args);
+	delete PhoneGap.callbacks[callbackId];
+};
+
 
 /**
  * Internal function used to dispatch the request to PhoneGap.  It processes the
@@ -208,7 +273,7 @@ PhoneGap.run_command = function() {
 };
 
 PhoneGap.close = function(context, func, params) {
-    if (null == params) {
+    if (typeof params === 'undefined') {
         return function() {
             return func.apply(context, arguments);
         }
@@ -217,8 +282,7 @@ PhoneGap.close = function(context, func, params) {
             return func.apply(context, params);
         }
     }
-}
-function Acceleration(x, y, z)
+};function Acceleration(x, y, z)
 {
   this.x = x;
   this.y = y;
@@ -628,17 +692,7 @@ Device.prototype.exitApp = function()
 
 PhoneGap.addConstructor(function() {
     navigator.device = window.device = new Device();
-});// Intercept calls to document.addEventListener and watch for deviceready
-PhoneGap._document_addEventListener = document.addEventListener;
-
-document.addEventListener = function(evt, handler, capture) {
-    if (evt.toLowerCase() == 'deviceready') {
-        PhoneGap.onDeviceReady.sob(handler);
-    } else {
-        PhoneGap._document_addEventListener.call(document, evt, handler);
-    }
-};
-
+});
 
 
 PhoneGap.addConstructor(function() { if (typeof navigator.fileMgr == "undefined") navigator.fileMgr = new FileMgr();});
@@ -966,6 +1020,72 @@ if (document.keyEvent == null || typeof document.keyEvent == 'undefined')
 {
   window.keyEvent = document.keyEvent = new KeyEvent();
 }
+
+
+
+//Ambient Light Sensor
+
+/**
+ * This class provides an object constructor watcher to listen a data from a java listener 
+ * @constructor
+ */
+function Watcher(x) {
+	/**
+	 * The last known data.
+	 */
+	this.data = x;
+	this.timestamp = new Date().getTime();
+}
+
+
+if (typeof navigator.system == "undefined") navigator.system =  function(){};
+
+
+//Sample vector for listeners. It can be used for all plugin that have something to observe
+var watcherListener= [];
+
+//I've watched on http://www.w3.org/TR/2010/WD-system-info-api-20100202/#system-properties
+navigator.system.watch = function(clazz, success, args) {	
+	var watchervar = new Watcher(0);
+	var mkey = watcherListener.push( watchervar ) - 1;
+	args[1]= {key:mkey};
+		
+	watchervar.win = success;	
+	
+	var sucPhoneGapCommand = function(a){				
+	};
+	var failPhoneGapCommand = function(){ 
+		alert("PhoneGap command fail");
+	};
+
+	var callbackId = clazz + PhoneGap.callbackId++;
+	PhoneGap.callbacks[callbackId] = {success:sucPhoneGapCommand, fail:failPhoneGapCommand};
+	return CommandManager.exec("com.phonegap.plugins."+clazz, "watch", callbackId, JSON.stringify(args), true);
+};
+
+
+
+Watcher.prototype.recallWathcers = function(key, data)
+{        	
+	var l = watcherListener[key];
+	l.data = data;
+	l.timestamp = new Date().getTime();	
+	if (typeof l.win == "function") {		
+		l.win(l.data);
+	}
+}
+
+Watcher.prototype.epicFail = function(key, message) {
+  sensorWatcher[key].fail();
+}
+
+
+PhoneGap.addConstructor(function() {
+    if (typeof navigator.system.AmbientLight == "undefined") navigator.system.AmbientLight = new Watcher();
+});
+
+// End LightSensor
+
 /**
  * This class provides access to the device media, interfaces to both sound and video
  * @constructor
@@ -1230,7 +1350,11 @@ PositionError.UNKNOWN_ERROR = 0;
 PositionError.PERMISSION_DENIED = 1;
 PositionError.POSITION_UNAVAILABLE = 2;
 PositionError.TIMEOUT = 3;
-/*
+PhoneGap.addConstructor(function() {
+    if (typeof navigator.splashScreen == "undefined") {
+    	navigator.splashScreen = SplashScreen;  // SplashScreen object come from native side through addJavaScriptInterface
+    }
+});/*
  * This is purely for the Android 1.5/1.6 HTML 5 Storage
  * I was hoping that Android 2.0 would deprecate this, but given the fact that 
  * most manufacturers ship with Android 1.5 and do not do OTA Updates, this is required

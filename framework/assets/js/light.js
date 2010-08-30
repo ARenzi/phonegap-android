@@ -1,6 +1,4 @@
-//Ambient Light Sensor plugin
-//Author: Alberto Renzi 
-//alberto.renzi@gmail.com
+//Ambient Light Sensor
 
 /**
  * This class provides an object constructor watcher to listen a data from a java listener 
@@ -42,7 +40,6 @@ navigator.system.watch = function(clazz, success, args) {
 
 
 
-//For trigger success function 
 Watcher.prototype.recallWathcers = function(key, data)
 {        	
 	var l = watcherListener[key];
@@ -53,13 +50,9 @@ Watcher.prototype.recallWathcers = function(key, data)
 	}
 }
 
-
-
 Watcher.prototype.epicFail = function(key, message) {
   sensorWatcher[key].fail();
 }
-
-
 
 
 PhoneGap.addConstructor(function() {
