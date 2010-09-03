@@ -133,3 +133,23 @@ PhoneGap.run_command = function() {
     document.location = url;
 
 };
+
+//For plugin architechture
+
+if (typeof PhoneGap.plugins == "undefined") PhoneGap.plugins =  function(){};
+
+PhoneGap.watch = function(clazz, success, fail, args) {	
+	var sucInterceptor = function(a){ 
+			eval("PhoneGap.plugins."+clazz+".data="+a+";");
+			eval("PhoneGap.plugins."+clazz+".timestamp=new Date().getTime();"); 			
+  			success(a);
+  		};
+  		
+  	var errInterceptor = function(a){  			
+  			fail(a);
+  		};
+		 	
+	var callbackId = clazz + PhoneGap.callbackId++;
+	PhoneGap.callbacks[callbackId] = {success:sucInterceptor, fail:errInterceptor};
+	return CommandManager.exec("com.phonegap.plugins."+clazz, "watch", callbackId, JSON.stringify(args), true);
+};

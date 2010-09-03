@@ -21,6 +21,10 @@ public final class CommandManager {
 	private static final String EXCEPTION_PREFIX = "[PhoneGap] *ERROR* Exception executing command [";
 	private static final String EXCEPTION_SUFFIX = "]: ";
 	
+	private static final int ISNOTACOMMAND = -1;
+	private static final int ISCOMMAND = 1;
+	private static final int ISCOMMANDLISTENER = 2;
+	
 	private Command[] commands;
 	
 	private final Context ctx;
@@ -31,6 +35,18 @@ public final class CommandManager {
 		this.app = app;
 	}
 
+	
+	public boolean dispatch(CommandResult cr, String callbackId)
+	{
+		if ((cr.getStatus() == 0)||(cr.getStatus() == 8)) {
+			app.loadUrl(cr.toSuccessCallbackString(callbackId));
+		} else {
+			app.loadUrl(cr.toErrorCallbackString(callbackId));
+		}	
+		return true;
+	}
+	
+	
 	/**
 	 * Receives a request for execution and fulfills it by finding the appropriate
 	 * Java class and calling it's execute method.
@@ -58,11 +74,12 @@ public final class CommandManager {
 		try {
 			final JSONArray args = new JSONArray(jsonArgs);
 			Class c = getClassByName(clazz);
-			if (isPhoneGapCommand(c)) {
-				// Create a new instance of the plugin and set the context and webview
+			if (isPhoneGapCommand(c)==ISCOMMAND) {
+				// Create a new instance of the plugin and set the context and webview				
 				final Command plugin = (Command) c.newInstance();				
 				plugin.setContext(this.ctx);
-				plugin.setView(this.app);			
+				plugin.setView(this.app);
+				plugin.setCallBackId(callbackId);
 				if (async) {
 					// Run this on a different thread so that this one can return back to JS
 					Thread thread = new Thread(new Runnable() {
@@ -83,6 +100,30 @@ public final class CommandManager {
 					// Call execute on the plugin so that it can do it's thing
 					cr = plugin.execute(action, args);
 				}
+			}
+			else if (isPhoneGapCommand(c)==ISCOMMANDLISTENER) {
+				// Create a new instance of the plugin and set the context and webview				
+				final CommandListener plugin = (CommandListener) c.newInstance();				
+				plugin.setContext(this.ctx);
+				plugin.setView(this.app);
+				plugin.setCallBackId(callbackId);
+				plugin.setCommandManager(this);
+				
+				// Run this on a different thread so that this one can return back to JS
+				Thread thread = new Thread(new Runnable() {
+					public void run() {
+						// Call execute on the plugin so that it can do it's thing
+						CommandResult cr = plugin.execute(action, args);
+						// Check the status for 0 (success) or otherwise
+						if (cr.getStatus() == 8) {
+							app.loadUrl(cr.toSuccessCallbackString(callbackId));
+						} else {
+							app.loadUrl(cr.toErrorCallbackString(callbackId));
+						}							
+					}
+				});
+				thread.start();
+				return "";				
 			}
 		} catch (ClassNotFoundException e) {
 			cr = new CommandResult(CommandResult.Status.CLASSNOTFOUNDEXCEPTION, 
@@ -122,15 +163,22 @@ public final class CommandManager {
 	 * @param c The class to check the interfaces of.
 	 * @return Boolean indicating if the class implements com.phonegap.api.Command
 	 */
-	private boolean isPhoneGapCommand(Class c) {
-		boolean isCommand = false;
+	private int isPhoneGapCommand(Class c) {
+		
 		Class[] interfaces = c.getInterfaces();
 		for (int j=0; j<interfaces.length; j++) {
-			if (interfaces[j].getName().equals("com.phonegap.api.Command")) {
-				isCommand = true;
-				break;
+			if (interfaces[j].getName().equals("com.phonegap.api.Command")) 
+			{
+				return ISCOMMAND;
+				
 			}
+			else if (interfaces[j].getName().equals("com.phonegap.api.CommandListener"))
+			{
+				return ISCOMMANDLISTENER;				
+			}
+			
 		}
-		return isCommand;
+		
+		return ISNOTACOMMAND;
 	}
 }

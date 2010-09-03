@@ -5,54 +5,66 @@ package com.phonegap.plugins;
  */
 
 import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import com.phonegap.api.Command;
+import com.phonegap.api.CommandListener;
+import com.phonegap.api.CommandManager;
 import com.phonegap.api.CommandResult;
 
+
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorManager;
 import android.util.Log;
 import android.webkit.WebView;
 
-public class AmbientLight implements Command 
+public class AmbientLight implements CommandListener 
 {
 	private static final String WATCH = "watch";
 	private static final String STOPWATCHING = "stopWatching";
 	
 	private WebView mAppView;
 	private Context mCtx;
-	private HashMap<String, AmbientLightListener> lightListeners;
+			
+	Sensor mSensor;		
+	int mTime = 10000;	//Default delay value millisecond
+	boolean started = false;
+	
+	private SensorManager sensorManager;
+	
+	private long lastUpdate = -1;
+	private String callbackId;
+	private CommandManager mCm;	//This is set by commandManager with a new instance
+								//with this reference i can activate other plugin 
 
 public AmbientLight()
 {
-	super();
-	lightListeners = new HashMap<String, AmbientLightListener>();
+	super();		
 }
 
 
-public AmbientLight(WebView view, Context ctx)
+public void watch(int freq)
 {
-	mCtx = ctx;
-	mAppView = view;
-	lightListeners = new HashMap<String, AmbientLightListener>();
-}
-
-
-public String watch(int freq, String key)
-{
-	Log.d("AmbientLight","watch chiamata key: " + key );
-	AmbientLightListener listener = new AmbientLightListener(key, freq, mCtx, mAppView);
-	listener.watch(freq);
-	lightListeners.put(key, listener);
-	return key;
+	this.mTime=freq;
+	sensorManager = (SensorManager) mCtx.getSystemService(Context.SENSOR_SERVICE);
+	Log.d("AmbientLight","watch chiamata" );
+	List<Sensor> list = this.sensorManager.getSensorList(Sensor.TYPE_LIGHT);
+	if (list.size() > 0)
+	{
+		this.mSensor = list.get(0);
+		this.sensorManager.registerListener(this, this.mSensor, SensorManager.SENSOR_DELAY_FASTEST);
+	}		
 }
 
 public void stop(String key)
 {
-	AmbientLightListener acc = lightListeners.get(key);
-	acc.stop();
+	if(started)
+		sensorManager.unregisterListener(this);
 }
 
 
@@ -70,12 +82,11 @@ public CommandResult execute(String action, JSONArray args){
 	
 	if (action.equalsIgnoreCase(WATCH))
 	{
-		try {
-			this.watch(Integer.parseInt(args.getJSONObject(0).getString("freq")),args.getJSONObject(1).getString("key"));						
+		try {					
+			this.watch(Integer.parseInt(args.getJSONObject(0).getString("freq")));						
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			cr = new CommandResult(CommandResult.Status.JSONEXCEPTION, "Errore");
-			//e.printStackTrace();
 			return cr;
 		}
 	}
@@ -84,14 +95,14 @@ public CommandResult execute(String action, JSONArray args){
 		try {
 			this.stop(args.getJSONObject(1).getString("key"));
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			cr = new CommandResult(CommandResult.Status.JSONEXCEPTION, "Errore");
+			return cr;
 		}		
 	}
 	else {
 		//For now nothing
 		}	
-	return cr= new CommandResult(CommandResult.Status.OK, "");
+	return cr= new CommandResult(CommandResult.Status.OKLISTENER, "0");
 }
 
 
@@ -103,9 +114,7 @@ public CommandResult execute(String action, JSONArray args){
  */
 public void setContext(Context ctx) {
 	// TODO Auto-generated method stub
-	mCtx = ctx;
-	
-	
+	mCtx = ctx;	
 }
 
 /**
@@ -116,7 +125,47 @@ public void setContext(Context ctx) {
  */
 public void setView(WebView webView) {
 	// TODO Auto-generated method stub
-	mAppView = webView;
+	mAppView = webView;	
+}
+
+
+public void onSensorChanged(SensorEvent event) {
+	// TODO Auto-generated method stub
+	if (event.sensor.getType() != Sensor.TYPE_LIGHT)
+		return;
+	long curTime = System.currentTimeMillis();
+	if (lastUpdate == -1 || (curTime - lastUpdate) > mTime) {		
+		lastUpdate = curTime;
+			
+		Log.d("AmbientLight plugin. New value =", event.values[0] +"");
+		float x = event.values[0];
+		
+		CommandResult cr = new CommandResult(CommandResult.Status.OKLISTENER, ""+x);
+		mCm.dispatch(cr, callbackId);					
+	}	
+}
+
+
+public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	// TODO Auto-generated method stub
 	
+}
+
+
+
+
+
+public void setCallBackId(String callbackId) {
+	// TODO Auto-generated method stub
+	this.callbackId=callbackId;
+}
+
+
+
+
+
+public void setCommandManager(CommandManager commandManager) {
+	// TODO Auto-generated method stub
+	this.mCm=commandManager;
 }
 }

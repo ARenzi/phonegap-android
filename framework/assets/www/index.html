@@ -62,14 +62,17 @@
   	}
   	
   	var watchLight = function() {  		  		  
-  		var suc = function(a){  			
-  			document.getElementById('luce').innerHTML = roundNumber(a);
+  		var suc = function(data){  			
+  			document.getElementById('luce').innerHTML = data;  			
+  		};
+  		
+  		var err = function(data){  			
+  			alert("Errore" + data);
   		};
   		  		
-  		options = new Array();	//JSON ARRAY: 0: all parameters of plugin
-								//			  1: all parameters of phonegap  	
+  		options = new Array();	//JSON ARRAY: 0: all parameters of plugin								
   		options[0]= {freq:100};	//Update on every 100 ms  		  		
-  		navigator.system.watch("AmbientLight", suc, options);
+  		PhoneGap.watch("AmbientLight", suc, err, options);
   	}
     	
     function roundNumber(num) {

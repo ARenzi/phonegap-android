@@ -38,4 +38,6 @@ public interface Command {
 	 * @param webView The PhoneGap WebView
 	 */
 	void setView(WebView webView);
+
+	void setCallBackId(String callbackId);
 }
