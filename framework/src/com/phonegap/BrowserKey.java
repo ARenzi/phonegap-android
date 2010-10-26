@@ -1,4 +1,4 @@
-//Prova
+//Prova di un commento
 package com.phonegap;
 
 import android.app.Activity;
