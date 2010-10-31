@@ -1,6 +1,14 @@
+/*
+ * PhoneGap is available under *either* the terms of the modified BSD license *or* the
+ * MIT License (2008). See http://opensource.org/licenses/alphabetical for full text.
+ * 
+ * Copyright (c) 2005-2010, Nitobi Software Inc.
+ * Copyright (c) 2010, IBM Corporation
+ */
 package com.phonegap;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -8,20 +16,15 @@ import org.json.JSONException;
 import com.phonegap.api.Plugin;
 import com.phonegap.api.PluginResult;
 
-import android.content.Intent;
-import android.webkit.WebView;
-
 /*
  * This class is the interface to the Geolocation.  It's bound to the geo object.
  * 
  * This class only starts and stops various GeoListeners, which consist of a GPS and a Network Listener
  */
 
-public class GeoBroker implements Plugin {
+public class GeoBroker extends Plugin {
     
-	WebView webView;					// WebView object
-    DroidGap ctx;						// DroidGap object
-
+    // List of gGeolocation listeners
     private HashMap<String, GeoListener> geoListeners;
 	private GeoListener global;
 	
@@ -33,42 +36,23 @@ public class GeoBroker implements Plugin {
 	}
 
 	/**
-	 * Sets the context of the Command. This can then be used to do things like
-	 * get file paths associated with the Activity.
+	 * Executes the request and returns PluginResult.
 	 * 
-	 * @param ctx The context of the main Activity.
+	 * @param action 		The action to execute.
+	 * @param args 			JSONArry of arguments for the plugin.
+	 * @param callbackId	The callback id used when calling back into JavaScript.
+	 * @return 				A PluginResult object with a status and message.
 	 */
-	public void setContext(DroidGap ctx) {
-		this.ctx = ctx;
-	}
-
-	/**
-	 * Sets the main View of the application, this is the WebView within which 
-	 * a PhoneGap app runs.
-	 * 
-	 * @param webView The PhoneGap WebView
-	 */
-	public void setView(WebView webView) {
-		this.webView = webView;
-	}
-
-	/**
-	 * Executes the request and returns CommandResult.
-	 * 
-	 * @param action The command to execute.
-	 * @param args JSONArry of arguments for the command.
-	 * @return A CommandResult object with a status and message.
-	 */
-	public PluginResult execute(String action, JSONArray args) {
+	public PluginResult execute(String action, JSONArray args, String callbackId) {
 		PluginResult.Status status = PluginResult.Status.OK;
 		String result = "";		
 		
 		try {
 			if (action.equals("getCurrentLocation")) {
-				this.getCurrentLocation();
+				this.getCurrentLocation(args.getBoolean(0), args.getInt(1), args.getInt(2));
 			}
 			else if (action.equals("start")) {
-				String s = this.start(args.getInt(0), args.getString(1));
+				String s = this.start(args.getString(0), args.getBoolean(1), args.getInt(2), args.getInt(3));
 				return new PluginResult(status, s);
 			}
 			else if (action.equals("stop")) {
@@ -87,61 +71,84 @@ public class GeoBroker implements Plugin {
 	 * @return			T=returns value
 	 */
 	public boolean isSynch(String action) {
-		return false;
+		// Starting listeners is easier to run on main thread, so don't run async.
+		return true;
 	}
-
-	/**
-     * Called when the system is about to start resuming a previous activity. 
-     */
-    public void onPause() {
-    }
-
-    /**
-     * Called when the activity will start interacting with the user. 
-     */
-    public void onResume() {
-    }
     
     /**
-     * Called by AccelBroker when listener is to be shut down.
+     * Called when the activity is to be shut down.
      * Stop listener.
      */
-    public void onDestroy() {   	
-    }
-
-    /**
-     * Called when an activity you launched exits, giving you the requestCode you started it with,
-     * the resultCode it returned, and any additional data from it. 
-     * 
-     * @param requestCode		The request code originally supplied to startActivityForResult(), 
-     * 							allowing you to identify who this result came from.
-     * @param resultCode		The integer result code returned by the child activity through its setResult().
-     * @param data				An Intent, which can return result data to the caller (various data can be attached to Intent "extras").
-     */
-    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+    public void onDestroy() {
+		java.util.Set<Entry<String,GeoListener>> s = this.geoListeners.entrySet();
+        java.util.Iterator<Entry<String,GeoListener>> it = s.iterator();
+        while (it.hasNext()) {
+            Entry<String,GeoListener> entry = it.next();
+            GeoListener listener = entry.getValue();
+            listener.destroy();
+		}
+        this.geoListeners.clear();
+        if (this.global != null) {
+        	this.global.destroy();
+        }
+        this.global = null;
     }
 
     //--------------------------------------------------------------------------
     // LOCAL METHODS
     //--------------------------------------------------------------------------
 
-	public void getCurrentLocation() {	
-		//It's supposed to run async!
-		if (global == null) {
-			global = new GeoListener("global", this.ctx, 10000, this.webView);
+    /**
+     * Get current location.
+     * The result is returned to JavaScript via a callback.
+     * 
+	 * @param enableHighAccuracy
+	 * @param timeout
+	 * @param maximumAge
+     */
+	public void getCurrentLocation(boolean enableHighAccuracy, int timeout, int maximumAge) {
+		
+		// Create a geolocation listener just for getCurrentLocation and call it "global"
+		if (this.global == null) {
+			this.global = new GeoListener(this, "global", maximumAge);
 		}
 		else {
-			global.start(10000);
+			this.global.start(maximumAge);
 		}
 	}
 	
-	public String start(int freq, String key) {
-		GeoListener listener = new GeoListener(key, this.ctx, freq, this.webView);
-		geoListeners.put(key, listener);
+	/**
+	 * Start geolocation listener and add to listener list.
+	 * 
+	 * @param key					The listener id
+	 * @param enableHighAccuracy
+	 * @param timeout
+	 * @param maximumAge
+	 * @return
+	 */
+	public String start(String key, boolean enableHighAccuracy, int timeout, int maximumAge) {
+		
+		// Make sure this listener doesn't already exist
+		GeoListener listener = geoListeners.get(key);
+		if (listener == null) {
+			listener = new GeoListener(this, key, maximumAge);
+			geoListeners.put(key, listener);
+		}
+		
+		// Start it
+		listener.start(maximumAge);
 		return key;
 	}
 	
+	/**
+	 * Stop geolocation listener and remove from listener list.
+	 * 
+	 * @param key			The listener id
+	 */
 	public void stop(String key) {
-		GeoListener geo = geoListeners.get(key);
+		GeoListener listener = geoListeners.remove(key);
+		if (listener != null) {
+			listener.stop();
+		}
 	}
 }

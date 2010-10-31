@@ -1,3 +1,10 @@
+/*
+ * PhoneGap is available under *either* the terms of the modified BSD license *or* the
+ * MIT License (2008). See http://opensource.org/licenses/alphabetical for full text.
+ * 
+ * Copyright (c) 2005-2010, Nitobi Software Inc.
+ * Copyright (c) 2010, IBM Corporation
+ */
 package com.phonegap;
 
 import java.io.File;
@@ -95,7 +102,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 	public void startRecording(String file) {
 		if (this.mPlayer != null) {
 			System.out.println("AudioPlayer Error: Can't record in play mode.");
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_PLAY_MODE_SET+");");
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_PLAY_MODE_SET+");");
 		}
 		
 		// Make sure we're not already recording
@@ -116,11 +123,11 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STARTING_RECORDING+");");			
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STARTING_RECORDING+");");			
 		}
 		else {
 			System.out.println("AudioPlayer Error: Already recording.");
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_ALREADY_RECORDING+");");			
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_ALREADY_RECORDING+");");			
 		}
 	}
 	
@@ -162,7 +169,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 	public void startPlaying(String file) {
 		if (this.recorder != null) {
 			System.out.println("AudioPlayer Error: Can't play in record mode.");
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_RECORD_MODE_SET+");");
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_RECORD_MODE_SET+");");
 		}
 		
 		// If this is a new request to play audio, or stopped
@@ -182,6 +189,8 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 				if (this.isStreaming(file)) {
 					this.mPlayer.setDataSource(file);
 					this.mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);  
+					this.setState(MEDIA_STARTING);
+					this.mPlayer.setOnPreparedListener(this);		
 					this.mPlayer.prepareAsync();
 				}
 				
@@ -195,17 +204,17 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 					else {
 						this.mPlayer.setDataSource("/sdcard/" + file);
 					}
+					this.setState(MEDIA_STARTING);
+					this.mPlayer.setOnPreparedListener(this);		
 					this.mPlayer.prepare();
 
 					// Get duration
 					this.duration = this.mPlayer.getDuration();
 				}
-				this.mPlayer.setOnPreparedListener(this);		
-				this.setState(MEDIA_STARTING);
 			} 
 			catch (Exception e) { 
 				e.printStackTrace(); 
-				this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STARTING_PLAYBACK+");");			
+				this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STARTING_PLAYBACK+");");			
 			}
 		}
 
@@ -219,7 +228,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 			}
 			else {
 				System.out.println("AudioPlayer Error: startPlaying() called during invalid state: "+this.state);
-				this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_RESUME_STATE+");");			
+				this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_RESUME_STATE+");");			
 			}
 		}
 	} 
@@ -236,7 +245,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 		}
 		else {
 			System.out.println("AudioPlayer Error: pausePlaying() called during invalid state: "+this.state);			
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_PAUSE_STATE+");");			
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_PAUSE_STATE+");");			
 		}
 	}
 
@@ -250,7 +259,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 		}
 		else {
 			System.out.println("AudioPlayer Error: stopPlaying() called during invalid state: "+this.state);			
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STOP_STATE+");");			
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+MEDIA_ERROR_STOP_STATE+");");			
 		}
 	}
 	
@@ -348,7 +357,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 		this.prepareOnly = false;
 
 		// Send status notification to JavaScript
-		this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_DURATION+","+this.duration+");");
+		this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_DURATION+","+this.duration+");");
 		
 	}
 
@@ -368,7 +377,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 		this.mPlayer.release();
 		
 		// Send error notification to JavaScript
-		this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+arg1+");");
+		this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_ERROR+", "+arg1+");");
 		return false;
 	}
 	
@@ -379,7 +388,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
 	 */
 	private void setState(int state) {
 		if (this.state != state) {
-			this.handler.ctx.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_STATE+", "+this.state+");");
+			this.handler.sendJavascript("PhoneGap.Media.onStatus('" + this.id + "', "+MEDIA_STATE+", "+state+");");
 		}
 		
 		this.state = state;

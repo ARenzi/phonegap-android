@@ -1,26 +1,11 @@
-package com.phonegap;
-/* License (MIT)
- * Copyright (c) 2008 Nitobi
- * website: http://phonegap.com
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * Software), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+/*
+ * PhoneGap is available under *either* the terms of the modified BSD license *or* the
+ * MIT License (2008). See http://opensource.org/licenses/alphabetical for full text.
  * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * Copyright (c) 2005-2010, Nitobi Software Inc.
+ * Copyright (c) 2010, IBM Corporation
  */
+package com.phonegap;
 
 
 
@@ -84,7 +69,7 @@ public class DroidGap extends Activity {
 
     private BrowserKey mKey;
     public CallbackServer callbackServer;
-	private PluginManager pluginManager;
+	protected PluginManager pluginManager;
 
     private String url;							// The initial URL for our app
     private String baseUrl;						// The base of the initial URL for our app
@@ -275,17 +260,8 @@ public class DroidGap extends Activity {
         appView.addJavascriptInterface(this.callbackServer, "CallbackServer");
     	appView.addJavascriptInterface(new SplashScreen(this), "SplashScreen");
 
-    	// Add in support for storage and location for Android 1.X devices
-        if (android.os.Build.VERSION.RELEASE.startsWith("1.")) {
-            Package pack = this.getClass().getPackage();
-            String appPackage = pack.getName();
-            Storage cupcakeStorage = (Storage)this.pluginManager.addPlugin("com.phonegap.Storage");
-        	cupcakeStorage.setStorage(appPackage);
-
-            this.pluginManager.addPlugin("com.phonegap.GeoBroker");
-
-        }
         
+        this.addService("Geolocation", "com.phonegap.GeoBroker");
         this.addService("Device", "com.phonegap.Device");
         this.addService("Accelerometer", "com.phonegap.AccelListener");
         this.addService("Compass", "com.phonegap.CompassListener");
@@ -294,12 +270,14 @@ public class DroidGap extends Activity {
         this.addService("Contacts", "com.phonegap.ContactManager");
         this.addService("Crypto", "com.phonegap.CryptoHandler");
         this.addService("File", "com.phonegap.FileUtils");
-        this.addService("Location", "com.phonegap.GeoBroker");
+        this.addService("Location", "com.phonegap.GeoBroker");	// Always add Location, even though it is built-in on 2.x devices. Let JavaScript decide which one to use.
         this.addService("Network Status", "com.phonegap.NetworkManager");
+        this.addService("Notification", "com.phonegap.Notification");
         this.addService("Storage", "com.phonegap.Storage");
         this.addService("Temperature", "com.phonegap.TempListener");
+
     }
- 
+        
     /**
      * Load the url into the webview.
      * 

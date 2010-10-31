@@ -1,54 +1,27 @@
-package com.phonegap;
-/* License (MIT)
- * Copyright (c) 2008 Nitobi
- * website: http://phonegap.com
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * Software), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+/*
+ * PhoneGap is available under *either* the terms of the modified BSD license *or* the
+ * MIT License (2008). See http://opensource.org/licenses/alphabetical for full text.
  * 
- * THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * Copyright (c) 2005-2010, Nitobi Software Inc.
+ * Copyright (c) 2010, IBM Corporation
  */
+package com.phonegap;
 
 import java.util.TimeZone;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import com.phonegap.api.Plugin;
 import com.phonegap.api.PluginResult;
-
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Vibrator;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
-import android.webkit.WebView;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
 
-public class Device implements Plugin {
+public class Device extends Plugin {
 	
-	public static String phonegapVersion = "pre-0.92 EDGE";		// PhoneGap version
+	public static String phonegapVersion = "0.9.2";				// PhoneGap version
 	public static String platform = "Android";					// Device OS
 	public static String uuid;									// Device UUID
-	private DroidGap ctx;										// DroidGap object
-    @SuppressWarnings("unused")
-	private WebView webView;									// Webview object
     
     /**
      * Constructor.
@@ -63,28 +36,19 @@ public class Device implements Plugin {
 	 * @param ctx The context of the main Activity.
 	 */
 	public void setContext(DroidGap ctx) {
-		this.ctx = ctx;
+		super.setContext(ctx);
         Device.uuid = getUuid();
 	}
 
 	/**
-	 * Sets the main View of the application, this is the WebView within which 
-	 * a PhoneGap app runs.
+	 * Executes the request and returns PluginResult.
 	 * 
-	 * @param webView The PhoneGap WebView
+	 * @param action 		The action to execute.
+	 * @param args 			JSONArry of arguments for the plugin.
+	 * @param callbackId	The callback id used when calling back into JavaScript.
+	 * @return 				A PluginResult object with a status and message.
 	 */
-	public void setView(WebView webView) {
-		this.webView = webView;
-	}
-
-	/**
-	 * Executes the request and returns CommandResult.
-	 * 
-	 * @param action The command to execute.
-	 * @param args JSONArry of arguments for the command.
-	 * @return A CommandResult object with a status and message.
-	 */
-	public PluginResult execute(String action, JSONArray args) {
+	public PluginResult execute(String action, JSONArray args, String callbackId) {
 		PluginResult.Status status = PluginResult.Status.OK;
 		String result = "";		
 	
@@ -100,12 +64,6 @@ public class Device implements Plugin {
 				//pg.put("version", Device.phonegapVersion);
 				//r.put("phonegap", pg);
 				return new PluginResult(status, r);
-			}
-			else if (action.equals("beep")) {
-				this.beep(args.getLong(0));
-			}
-			else if (action.equals("vibrate")) {
-				this.vibrate(args.getLong(0));
 			}
 			return new PluginResult(status, result);
 		} catch (JSONException e) {
@@ -126,80 +84,10 @@ public class Device implements Plugin {
 		return false;
 	}
 
-	/**
-     * Called when the system is about to start resuming a previous activity. 
-     */
-    public void onPause() {
-    }
-
-    /**
-     * Called when the activity will start interacting with the user. 
-     */
-    public void onResume() {
-    }
-    
-    /**
-     * Called when the activity is to be shut down.
-     * Stop listener.
-     */
-    public void onDestroy() {   	
-    }
-
-    /**
-     * Called when an activity you launched exits, giving you the requestCode you started it with,
-     * the resultCode it returned, and any additional data from it. 
-     * 
-     * @param requestCode		The request code originally supplied to startActivityForResult(), 
-     * 							allowing you to identify who this result came from.
-     * @param resultCode		The integer result code returned by the child activity through its setResult().
-     * @param data				An Intent, which can return result data to the caller (various data can be attached to Intent "extras").
-     */
-    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-    }
-
     //--------------------------------------------------------------------------
     // LOCAL METHODS
     //--------------------------------------------------------------------------
-	
-	/**
-	 * Beep plays the default notification ringtone.
-	 * 
-	 * @param count			Number of times to play notification
-	 */
-	public void beep(long count) {
-		Uri ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-		Ringtone notification = RingtoneManager.getRingtone(this.ctx, ringtone);
 		
-		// If phone is not set to silent mode
-		if (notification != null) {
-			for (long i = 0; i < count; ++i) {
-				notification.play();
-				long timeout = 5000;
-				while (notification.isPlaying() && (timeout > 0)) {
-					timeout = timeout - 100;
-					try {
-						Thread.sleep(100);
-					} catch (InterruptedException e) {
-					}
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Vibrates the device for the specified amount of time.
-	 * 
-	 * @param time			Time to vibrate in ms.
-	 */
-	public void vibrate(long time){
-        // Start the vibration, 0 defaults to half a second.
-		if (time == 0) {
-			time = 500;
-		}
-        Vibrator vibrator = (Vibrator) this.ctx.getSystemService(Context.VIBRATOR_SERVICE);
-        vibrator.vibrate(time);
-	}
-	
 	/**
 	 * Get the OS name.
 	 * 
